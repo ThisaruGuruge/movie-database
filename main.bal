@@ -1,64 +1,70 @@
 import movie_database.datasource;
 
-import ballerina/graphql;
+import ballerina/io;
 
-final datasource:Client dbClient = check new;
+import thisarug/prettify;
 
-@graphql:ServiceConfig {
-    graphiql: {
-        enabled: true
-    },
-    maxQueryDepth: 4
-}
-service on new graphql:Listener(9090) {
+public function main() returns error? {
+    final datasource:Client dbClient = check new;
 
-    resource function get movies() returns Movie[]|error {
-        stream<datasource:Movie, error?> movieStream = dbClient->/movies();
-        return from datasource:Movie m in movieStream select new (m);
-    }
+    datasource:Director director1 = {
+        id: "1",
+        name: "James Cameron",
+        birthYear: 1954
+    };
+    datasource:Director director2 = {
+        id: "2",
+        name: "Christopher Nolan",
+        birthYear: 1970
+    };
 
-    resource function get directors() returns Director[]|error {
-        stream<datasource:Director, error?> directorStream = dbClient->/directors();
-        return from datasource:Director d in directorStream select new (d);
-    }
-}
+    datasource:Movie movie1 = {
+        id: "1",
+        title: "Inception",
+        year: 2010,
+        directorId: director2.id
+    };
+    datasource:Movie movie2 = {
+        id: "2",
+        title: "Interstellar",
+        year: 2014,
+        directorId: director2.id
+    };
+    datasource:Movie movie3 = {
+        id: "3",
+        title: "Tenet",
+        year: 2020,
+        directorId: director2.id
+    };
+    datasource:Movie movie4 = {
+        id: "4",
+        title: "Avatar",
+        year: 2009,
+        directorId: director1.id
+    };
+    datasource:Movie movie5 = {
+        id: "5",
+        title: "Titanic",
+        year: 1997,
+        directorId: director1.id
+    };
 
-service class Movie {
-    private final readonly & datasource:Movie movie;
+    _ = check dbClient->/directors.post([director1, director2]);
+    _ = check dbClient->/movies.post([movie1, movie2, movie3, movie4, movie5]);
 
-    function init(datasource:Movie movie) {
-        self.movie = movie.cloneReadOnly();
-    }
+    stream<datasource:Director, error?> directorStream = dbClient->/directors;
+    datasource:Director[] directors = check from datasource:Director director in directorStream
+        select director;
+    io:println(prettify:prettify(directors));
 
-    resource function get id() returns @graphql:ID string => self.movie.id;
-
-    resource function get title() returns string => self.movie.title;
-
-    resource function get year() returns int => self.movie.year;
-
-    resource function get director() returns Director|error {
-        datasource:Director director = check dbClient->/directors/[self.movie.directorId];
-        return new (director);
-    }
-}
-
-service class Director {
-    private final readonly & datasource:Director director;
-
-    function init(datasource:Director director) {
-        self.director = director.cloneReadOnly();
-    }
-
-    resource function get id() returns @graphql:ID string => self.director.id;
-
-    resource function get name() returns string => self.director.name;
-
-    resource function get birthYear() returns int => self.director.birthYear;
-
-    resource function get movies() returns Movie[]|error {
-        record {|
-            datasource:Movie[] movies;
-        |} result = check dbClient->/directors/[self.director.id];
-        return from datasource:Movie m in result.movies select new (m);
-    }
+    stream<record {|
+        string title;
+        record {|string name;|} director;
+    |}, error?> movieStream = dbClient->/movies;
+    record {|
+        string title;
+        record {|string name;|} director;
+    |}[] movies = check from record {|string title; record {|string name;|} director;|} movie in movieStream
+        select movie;
+    io:println(prettify:prettify(movies));
 }
