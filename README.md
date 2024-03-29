@@ -11,25 +11,27 @@ This is a sample Ballerina repository for a movie database. It demonstrates how 
 
 ## Getting Started
 
-1. Clone the repository by running the following command.
+1. Clone the repository.
+
+2. Navigate to the `movie-database` directory.
 
     ```bash
-    git clone
+    cd movie-database
     ```
 
-2. Start the MySQL database using Docker.
+3. Start the MySQL database using Docker.
 
     ```bash
     docker-compose up
     ```
 
-3. Generate the persistence layer by running the following command.
+4. Generate the persistence layer by running the following command.
 
     ```bash
     bal persist generate
     ```
 
-4. Run the Ballerina service.
+5. Run the Ballerina service.
 
     ```bash
     bal run
